@@ -4,6 +4,7 @@
 - Vue
 ## サーバー
 - Go or Kotlin
+  - Kotlinで開発 -> Go Fiber等へシフト
 ## 機能
 - タスク管理
   - タスク作成
@@ -19,3 +20,19 @@
   - タイマーツール
   - 学習ログ
 - 同期機能
+- アカウント管理機能
+  - ユーザ作成
+  - ユーザ削除
+  - ログイン・ログアウト
+## 機能詳細
+### タスク管理
+- タスク/データ構造 
+```yaml
+task:
+    id: UUID
+    targetName: String(varchar len100)
+    description: String 
+    progress: String(enum)
+    deadline: datetime
+    hasDone: boolean
+```
