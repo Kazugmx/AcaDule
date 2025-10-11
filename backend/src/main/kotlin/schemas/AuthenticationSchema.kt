@@ -1,6 +1,7 @@
 package net.kazugmx.acadule.schemas
 
 import at.favre.lib.crypto.bcrypt.BCrypt
+import com.auth0.jwt.algorithms.Algorithm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
@@ -38,6 +39,7 @@ data class LoginReq(
     val password: String
 )
 
+@Serializable
 data class LoginRes(
     val userID: Int
 )

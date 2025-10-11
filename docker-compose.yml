@@ -1,2 +1,13 @@
-service:
+services:
 # todo: prepare database
+  database:
+    image: postgres:17.1-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-store:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+volumes:
+  db-store:

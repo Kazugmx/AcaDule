@@ -1,4 +1,4 @@
-package net.kazugmx.acadule
+package net.kazugmx.acadule.components
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -14,14 +14,49 @@ import io.ktor.server.routing.*
 import net.kazugmx.acadule.schemas.AuthService
 import net.kazugmx.acadule.schemas.LoginReq
 import net.kazugmx.acadule.schemas.UserCreateReq
-import org.jetbrains.exposed.sql.exposedLogger
 import java.util.*
+
+
+suspend inline fun ApplicationCall.safeJwt(block: () -> Unit) {
+    try {
+        block()
+    } catch (e: TokenExpiredException) {
+        respond(
+            HttpStatusCode.BadRequest,
+            mapOf(
+                "status" to "failed",
+                "reason" to "Token Expired",
+                "expiredOn" to e.expiredOn.toString()
+            )
+        )
+        application.log.info("Token Expired: ${e.expiredOn}")
+    } catch (e: JWTDecodeException) {
+        respond(
+            HttpStatusCode.BadRequest,
+            mapOf(
+                "status" to "failed",
+                "reason" to "Invalid Token",
+                "detail" to e.message
+            )
+        )
+    } catch (e: Exception) {
+        application.log.error("JWT processing failed", e)
+        respond(
+            HttpStatusCode.InternalServerError,
+            mapOf(
+                "status" to "failed",
+                "reason" to "Internal Server Error"
+            )
+        )
+    }
+}
 
 fun Application.configureAuth(authService: AuthService) {
     // Please read the jwt property from the config file if you are using EngineMain
+    @Suppress("unused")
+    val jwtDomain = environment.config.property("jwt.domain").getString()
     val jwtIssuer = environment.config.property("jwt.issuer").getString()
     val jwtAudience = environment.config.property("jwt.audience").getString()
-    val jwtDomain = environment.config.property("jwt.domain").getString()
     val jwtRealm = environment.config.property("jwt.realm").getString()
     val jwtSecret = environment.config.property("jwt.secret").getString()
 
@@ -32,14 +67,17 @@ fun Application.configureAuth(authService: AuthService) {
                 JWT
                     .require(Algorithm.HMAC256(jwtSecret))
                     .withAudience(jwtAudience)
-                    .withIssuer(jwtDomain)
+                    .withIssuer(jwtIssuer)
                     .build()
             )
             validate { credential ->
                 if (credential.payload.audience.contains(jwtAudience)) {
-                    if( authService.isUserExists(credential.payload.getClaim("userid").asInt()))
-                        JWTPrincipal(credential.payload)
+                    if (authService.isUserExists(credential.payload.getClaim("userid").asInt()))
+                        JWTPrincipal(credential.payload) else null
                 } else null
+            }
+            challenge { _, _ ->
+                call.respond(HttpStatusCode.Unauthorized, "Token is not valid or has expired")
             }
         }
     }
@@ -56,14 +94,19 @@ fun Application.configureAuth(authService: AuthService) {
             }
             post("login") {
                 val login = call.receive<LoginReq>()
-                val chall = authService.login(login)
-                if (chall != null) {
+                val challenge = authService.login(login)
+                if (challenge != null) {
                     val generatedToken =
                         JWT.create()
                             .withAudience(jwtAudience)
                             .withIssuer(jwtIssuer)
-                            .withClaim("userid", chall.userID)
-                            .withExpiresAt(Date(System.currentTimeMillis() + 60000))
+                            .withClaim("userid", challenge.userID)
+                            .withExpiresAt(
+                                Date(
+                                    System.currentTimeMillis()
+                                            + (1000 * 60 * 60 * 24 * 14)
+                                )
+                            )
                             .sign(Algorithm.HMAC256(jwtSecret))
                     call.respond(
                         mapOf("status" to "success", "token" to generatedToken)
@@ -72,58 +115,39 @@ fun Application.configureAuth(authService: AuthService) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("status" to "failed"))
             }
             post("tryToken") {
-                val token = call.receiveText()
-                log.info("TryToken: $token")
-                try {
+                call.safeJwt {
+                    val token = call.receiveText()
                     val decoded = JWT.require(Algorithm.HMAC256(jwtSecret)).build()
                         .verify(token.removePrefix("Bearer").trim())
-                    call.respond(mapOf("status" to "success", "id" to decoded.getClaim("userid").asInt()))
-                    authService.isUserExists(decoded.getClaim("userid").asInt())
-                } catch (e: TokenExpiredException) {
-                    call.respond(HttpStatusCode.BadRequest, mapOf("status" to "failed", "reason" to "Token Expired"))
-                    log.info("Token Expired: ${e.expiredOn}")
+                    if (authService.isUserExists(decoded.getClaim("userid").asInt()))
+                        call.respond(
+                            mapOf(
+                                "status" to "success",
+                                "id" to decoded.getClaim("userid").toString(),
+                                "expiresOn" to decoded.expiresAt.toString()
+                            )
+                        )
                 }
             }
             authenticate("auth-jwt") {
                 post("tryTokenV2") {
-                    try {
+                    call.safeJwt {
                         val principal = call.principal<JWTPrincipal>()
                             ?: return@post call.respond(
                                 HttpStatusCode.BadRequest,
                                 mapOf("status" to "failed", "reason" to "No JWT Principal")
                             )
-                        principal.payload.getClaim("userid").asInt().let { id ->
+                        principal.payload.getClaim("userid").asInt()?.let { id ->
                             if (authService.isUserExists(id))
                                 call.respond(
                                     mapOf(
                                         "status" to "success",
-                                        "id" to id,
-                                        "expiry" to principal.expiresAt
+                                        "id" to id.toString(),
+                                        "expiry" to principal.expiresAt.toString()
                                     )
                                 )
                             else call.respond(HttpStatusCode.BadRequest, mapOf("status" to "failed"))
                         }
-                    } catch (e: TokenExpiredException) {
-                        call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf(
-                                "status" to "failed",
-                                "reason" to "Token Expired ${e.expiredOn}"
-                            )
-                        )
-                    } catch (e: JWTDecodeException) {
-                        call.respond(
-                            HttpStatusCode.BadRequest, mapOf(
-                                "status" to "failed",
-                                "reason" to "Invalid Token ${e.message}"
-                            )
-                        )
-                    } catch (e: Exception) {
-                        exposedLogger.error("Failed to process tryTokenV2", e)
-                        call.respond(
-                            HttpStatusCode.InternalServerError,
-                            mapOf("status" to "Internal Server Error")
-                        )
                     }
                 }
                 get("users") {
