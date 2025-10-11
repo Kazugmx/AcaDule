@@ -16,41 +16,6 @@ import net.kazugmx.acadule.schemas.LoginReq
 import net.kazugmx.acadule.schemas.UserCreateReq
 import java.util.*
 
-
-suspend inline fun ApplicationCall.safeJwt(block: () -> Unit) {
-    try {
-        block()
-    } catch (e: TokenExpiredException) {
-        respond(
-            HttpStatusCode.BadRequest,
-            mapOf(
-                "status" to "failed",
-                "reason" to "Token Expired",
-                "expiredOn" to e.expiredOn.toString()
-            )
-        )
-        application.log.info("Token Expired: ${e.expiredOn}")
-    } catch (e: JWTDecodeException) {
-        respond(
-            HttpStatusCode.BadRequest,
-            mapOf(
-                "status" to "failed",
-                "reason" to "Invalid Token",
-                "detail" to e.message
-            )
-        )
-    } catch (e: Exception) {
-        application.log.error("JWT processing failed", e)
-        respond(
-            HttpStatusCode.InternalServerError,
-            mapOf(
-                "status" to "failed",
-                "reason" to "Internal Server Error"
-            )
-        )
-    }
-}
-
 fun Application.configureAuth(authService: AuthService) {
     // Please read the jwt property from the config file if you are using EngineMain
     @Suppress("unused")
