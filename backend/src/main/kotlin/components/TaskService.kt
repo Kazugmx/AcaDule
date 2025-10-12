@@ -30,11 +30,7 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                     }
                 }
                 get("/{taskID}") {
-                    call.safeJwt {
-                        val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("status" to "failed", "reason" to "No JWT Principal")
-                        )
+                    call.safeJwt { principal ->
                         val id = principal.payload.getClaim("userid").asInt()
                         try {
                             val taskId =UUID.fromString(call.parameters["taskID"])
@@ -55,11 +51,7 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                     }
                 }
                 post {
-                    call.safeJwt {
-                        val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("status" to "failed", "reason" to "No JWT Principal")
-                        )
+                    call.safeJwt { principal ->
                         val taskPayload = call.receive<CreateTaskReq>()
                         principal.payload.getClaim("userid").asInt()?.let { id ->
                             if (authService.isUserExists(id)) {
@@ -76,11 +68,7 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                     }
                 }
                 patch {
-                    call.safeJwt {
-                        val principal = call.principal<JWTPrincipal>() ?: return@patch call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("status" to "failed", "reason" to "No JWT Principal")
-                        )
+                    call.safeJwt { principal ->
                         val patchingTask = call.receive<UpdateTaskReq>()
                         val userID = principal.payload.getClaim("userid").asInt()
                         val updated = taskService.updateTask(patchingTask, userID)
@@ -92,11 +80,7 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                 }
 
                 delete {
-                    call.safeJwt {
-                        val principal = call.principal<JWTPrincipal>() ?: return@delete call.respond(
-                            HttpStatusCode.BadRequest,
-                            mapOf("status" to "failed", "reason" to "No JWT Principal")
-                        )
+                    call.safeJwt { principal ->
                         val deletingTask = call.receive<IDTaskReq>()
                         val userID = principal.payload.getClaim("userid").asInt()
                         if (authService.isUserExists(userID)) {

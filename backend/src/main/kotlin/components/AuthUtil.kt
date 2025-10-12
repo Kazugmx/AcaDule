@@ -4,11 +4,17 @@ import com.auth0.jwt.exceptions.JWTDecodeException
 import com.auth0.jwt.exceptions.TokenExpiredException
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.response.*
 
-suspend inline fun ApplicationCall.safeJwt(block: () -> Unit) {
+suspend inline fun ApplicationCall.safeJwt(block: (JWTPrincipal) -> Unit) {
     try {
-        block()
+        val principal = principal<JWTPrincipal>() ?: return respond(
+            HttpStatusCode.BadRequest,
+            mapOf("status" to "failed", "reason" to "No JWT Principal")
+        )
+        block(principal)
     } catch (e: TokenExpiredException) {
         respond(
             HttpStatusCode.BadRequest, mapOf(

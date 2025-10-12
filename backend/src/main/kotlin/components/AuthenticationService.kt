@@ -75,28 +75,9 @@ fun Application.configureAuth(authService: AuthService) {
                 }
                 call.respond(HttpStatusCode.BadRequest, mapOf("status" to "failed"))
             }
-            post("tryToken") {
-                call.safeJwt {
-                    val token = call.receiveText()
-                    val decoded = JWT.require(Algorithm.HMAC256(jwtSecret)).build()
-                        .verify(token.removePrefix("Bearer").trim())
-                    call.respond(
-                        mapOf(
-                            "status" to "success",
-                            "id" to decoded.getClaim("userid").toString(),
-                            "expiresOn" to decoded.expiresAt.toString()
-                        )
-                    )
-                }
-            }
             authenticate("auth-jwt") {
-                post("tryTokenV2") {
-                    call.safeJwt {
-                        val principal = call.principal<JWTPrincipal>()
-                            ?: return@post call.respond(
-                                HttpStatusCode.BadRequest,
-                                mapOf("status" to "failed", "reason" to "No JWT Principal")
-                            )
+                post("me") {
+                    call.safeJwt { principal ->
                         call.respond(
                             mapOf(
                                 "status" to "success",
