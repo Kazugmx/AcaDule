@@ -1,6 +1,7 @@
 package net.kazugmx.acadule.schemas
 
 import at.favre.lib.crypto.bcrypt.BCrypt
+import com.auth0.jwt.algorithms.Algorithm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
@@ -38,12 +39,13 @@ data class LoginReq(
     val password: String
 )
 
+@Serializable
 data class LoginRes(
     val userID: Int
 )
 
 
-class AuthService(database: Database) {
+class AuthService(@Suppress("unused") database: Database) {
     object UserTable : IntIdTable("users") {
         val mail = varchar("mail", length = 255).uniqueIndex()
         val username = varchar("username", 50).uniqueIndex()
@@ -93,7 +95,23 @@ class AuthService(database: Database) {
         return@dbQuery null
     }
 
-    suspend fun getUsers() = dbQuery {
+    suspend fun isUserExists(id : Int) : Boolean = dbQuery {
+        UserTable.select(UserTable.id).where { UserTable.id eq id }.singleOrNull()?.let{true}
+            ?: false
+    }
+
+    suspend fun getUser(id : Int) : UserRes? = dbQuery {
+        UserTable.select(UserTable.id).where { UserTable.id eq id }.map{
+            UserRes(
+                username = it[UserTable.username],
+                mail = it[UserTable.mail],
+                createdAt = it[UserTable.createdAt],
+                lastLoginAt = it[UserTable.lastLoginAt]
+            )
+        }.singleOrNull()
+    }
+
+    suspend fun getUsers():List<UserRes> = dbQuery {
         UserTable.selectAll().map {
             UserRes(
                 username = it[UserTable.username],
@@ -112,4 +130,5 @@ class AuthService(database: Database) {
 
     private suspend fun <T> dbQuery(block: suspend () -> T): T =
         newSuspendedTransaction(Dispatchers.IO) { block() }
+
 }
