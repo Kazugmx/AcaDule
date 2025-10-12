@@ -10,7 +10,6 @@ db:
   password: ${JDBC_PASSWORD:-}
 jwt:
   issuer: ${JWT_ISSUER:-acadule-backend}
-  domain: ${JWT_DOMAIN:-http://localhost:8080}
   audience: "common users"
   realm: "acadule-backend"
   secret: ${JWT_SECRET:-secret } # test secret

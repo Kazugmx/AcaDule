@@ -2,9 +2,7 @@ package net.kazugmx.acadule.components
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.auth0.jwt.exceptions.JWTDecodeException
-import com.auth0.jwt.exceptions.TokenExpiredException
-import io.ktor.http.HttpStatusCode
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
@@ -18,8 +16,6 @@ import java.util.*
 
 fun Application.configureAuth(authService: AuthService) {
     // Please read the jwt property from the config file if you are using EngineMain
-    @Suppress("unused")
-    val jwtDomain = environment.config.property("jwt.domain").getString()
     val jwtIssuer = environment.config.property("jwt.issuer").getString()
     val jwtAudience = environment.config.property("jwt.audience").getString()
     val jwtRealm = environment.config.property("jwt.realm").getString()
@@ -84,14 +80,13 @@ fun Application.configureAuth(authService: AuthService) {
                     val token = call.receiveText()
                     val decoded = JWT.require(Algorithm.HMAC256(jwtSecret)).build()
                         .verify(token.removePrefix("Bearer").trim())
-                    if (authService.isUserExists(decoded.getClaim("userid").asInt()))
-                        call.respond(
-                            mapOf(
-                                "status" to "success",
-                                "id" to decoded.getClaim("userid").toString(),
-                                "expiresOn" to decoded.expiresAt.toString()
-                            )
+                    call.respond(
+                        mapOf(
+                            "status" to "success",
+                            "id" to decoded.getClaim("userid").toString(),
+                            "expiresOn" to decoded.expiresAt.toString()
                         )
+                    )
                 }
             }
             authenticate("auth-jwt") {
@@ -102,24 +97,20 @@ fun Application.configureAuth(authService: AuthService) {
                                 HttpStatusCode.BadRequest,
                                 mapOf("status" to "failed", "reason" to "No JWT Principal")
                             )
-                        principal.payload.getClaim("userid").asInt()?.let { id ->
-                            if (authService.isUserExists(id))
-                                call.respond(
-                                    mapOf(
-                                        "status" to "success",
-                                        "id" to id.toString(),
-                                        "expiry" to principal.expiresAt.toString()
-                                    )
-                                )
-                            else call.respond(HttpStatusCode.BadRequest, mapOf("status" to "failed"))
-                        }
+                        call.respond(
+                            mapOf(
+                                "status" to "success",
+                                "id" to principal.payload.getClaim("userid").toString(),
+                                "expiry" to principal.expiresAt.toString()
+                            )
+                        )
                     }
                 }
-                get("users") {
-                    call.respond(
-                        authService.getUsers()
-                    )
-                }
+            }
+            get("users") {
+                call.respond(
+                    authService.getUsers()
+                )
             }
         }
     }
