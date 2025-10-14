@@ -29,27 +29,6 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                         )
                     }
                 }
-                get("/{taskID}") {
-                    call.safeJwt { principal ->
-                        val id = principal.payload.getClaim("userid").asInt()
-                        try {
-                            val taskId =UUID.fromString(call.parameters["taskID"])
-                            log.info("Task ID: $taskId")
-                            val task =
-                                taskService.getTaskByID(taskID = taskId.toString(), userID = id) ?: call.respond(
-                                    HttpStatusCode.NotFound,
-                                    mapOf("status" to "failed", "reason" to "Task not found")
-                                )
-                            call.respond(HttpStatusCode.OK, task)
-
-                        } catch (_: IllegalArgumentException) {
-                            call.respond(
-                                HttpStatusCode.BadRequest,
-                                mapOf("status" to "failed", "reason" to "Invalid Task ID")
-                            )
-                        }
-                    }
-                }
                 post {
                     call.safeJwt { principal ->
                         val taskPayload = call.receive<CreateTaskReq>()
@@ -74,7 +53,8 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                         val updated = taskService.updateTask(patchingTask, userID)
                             ?: return@patch call.respond(
                                 HttpStatusCode.NotFound,
-                                mapOf("status" to "failed", "reason" to "Task not found"))
+                                mapOf("status" to "failed", "reason" to "Task not found")
+                            )
                         call.respond(HttpStatusCode.OK, updated)
                     }
                 }
@@ -85,6 +65,29 @@ fun Application.configureTaskService(database: Database, authService: AuthServic
                         val userID = principal.payload.getClaim("userid").asInt()
                         if (authService.isUserExists(userID)) {
                             taskService.deleteTask(id = deletingTask.id, userID = userID)
+                        }
+                    }
+                }
+                route("/{taskID}") {
+                    get {
+                        call.safeJwt { principal ->
+                            val id = principal.payload.getClaim("userid").asInt()
+                            try {
+                                val taskId = UUID.fromString(call.parameters["taskID"])
+                                log.info("Task ID: $taskId")
+                                val task =
+                                    taskService.getTaskByID(taskID = taskId.toString(), userID = id) ?: call.respond(
+                                        HttpStatusCode.NotFound,
+                                        mapOf("status" to "failed", "reason" to "Task not found")
+                                    )
+                                call.respond(HttpStatusCode.OK, task)
+
+                            } catch (_: IllegalArgumentException) {
+                                call.respond(
+                                    HttpStatusCode.BadRequest,
+                                    mapOf("status" to "failed", "reason" to "Invalid Task ID")
+                                )
+                            }
                         }
                     }
                 }
