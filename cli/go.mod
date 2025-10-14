@@ -1,4 +1,4 @@
-module AcaDule-CLI
+module acadule-cli
 
 go 1.25.3
 
