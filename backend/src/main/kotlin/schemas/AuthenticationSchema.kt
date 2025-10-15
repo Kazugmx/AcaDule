@@ -1,14 +1,14 @@
 package net.kazugmx.acadule.schemas
 
 import at.favre.lib.crypto.bcrypt.BCrypt
-import com.auth0.jwt.algorithms.Algorithm
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.kotlin.datetime.*
+import org.jetbrains.exposed.sql.kotlin.datetime.CurrentDateTime
+import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 
@@ -27,6 +27,7 @@ data class UserCreateReq(
     val mail: String,
     val password: String
 )
+
 @Serializable
 data class UserCreateRes(
     val status: Boolean,
@@ -61,7 +62,12 @@ class AuthService(@Suppress("unused") database: Database) {
         }
     }
 
-    suspend fun createUser(user: UserCreateReq):UserCreateRes = dbQuery {
+    suspend fun createUser(user: UserCreateReq): UserCreateRes = dbQuery {
+        val isCredentialExists =
+            UserTable.select(UserTable.mail).where { (UserTable.mail eq user.mail) or (UserTable.username eq user.username) }.singleOrNull()
+        if (isCredentialExists != null) {
+            return@dbQuery UserCreateRes(false, -1)
+        }
         val passHash = BCrypt.withDefaults().hashToString(12, user.password.toCharArray())
         try {
             val id: Int = UserTable.insert {
@@ -69,10 +75,10 @@ class AuthService(@Suppress("unused") database: Database) {
                 it[username] = user.username
                 it[password] = passHash
             }[UserTable.id].value
-            return@dbQuery UserCreateRes(true,id)
-        } catch(e: Exception) {
+            return@dbQuery UserCreateRes(true, id)
+        } catch (e: Exception) {
             exposedLogger.error(e.message)
-            return@dbQuery UserCreateRes(false,-1)
+            return@dbQuery UserCreateRes(false, -1)
         }
     }
 
@@ -95,13 +101,13 @@ class AuthService(@Suppress("unused") database: Database) {
         return@dbQuery null
     }
 
-    suspend fun isUserExists(id : Int) : Boolean = dbQuery {
-        UserTable.select(UserTable.id).where { UserTable.id eq id }.singleOrNull()?.let{true}
+    suspend fun isUserExists(id: Int): Boolean = dbQuery {
+        UserTable.select(UserTable.id).where { UserTable.id eq id }.singleOrNull()?.let { true }
             ?: false
     }
 
-    suspend fun getUser(id : Int) : UserRes? = dbQuery {
-        UserTable.select(UserTable.id).where { UserTable.id eq id }.map{
+    suspend fun getUser(id: Int): UserRes? = dbQuery {
+        UserTable.select(UserTable.id).where { UserTable.id eq id }.map {
             UserRes(
                 username = it[UserTable.username],
                 mail = it[UserTable.mail],
@@ -111,7 +117,7 @@ class AuthService(@Suppress("unused") database: Database) {
         }.singleOrNull()
     }
 
-    suspend fun getUsers():List<UserRes> = dbQuery {
+    suspend fun getUsers(): List<UserRes> = dbQuery {
         UserTable.selectAll().map {
             UserRes(
                 username = it[UserTable.username],
