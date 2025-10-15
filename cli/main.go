@@ -1,10 +1,7 @@
-/*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
-*/
+/* Copyright © 2025 Kazunyan <kazu@kazugmx.net> */
 package main
 
-import "AcaDule-CLI/cmd"
+import "acadule-cli/cmd"
 
 func main() {
 	cmd.Execute()
