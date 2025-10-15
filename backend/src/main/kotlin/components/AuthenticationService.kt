@@ -76,7 +76,7 @@ fun Application.configureAuth(authService: AuthService) {
                 call.respond(HttpStatusCode.BadRequest, mapOf("status" to "failed"))
             }
             authenticate("auth-jwt") {
-                post("me") {
+                get("me") {
                     call.safeJwt { principal ->
                         call.respond(
                             mapOf(
