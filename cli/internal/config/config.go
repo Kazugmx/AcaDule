@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -62,8 +63,12 @@ func GetConfigPath() string {
 }
 
 func Load() (Config, error) {
-	var cfg Config
+	var cfg Config = Config{}
 	data, err := os.ReadFile(GetConfigPath())
+	if errors.Is(err, os.ErrNotExist) {
+		// return default
+		return cfg, nil
+	}
 	if err != nil {
 		return cfg, err
 	}
