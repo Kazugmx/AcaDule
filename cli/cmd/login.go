@@ -87,7 +87,7 @@ var loginCmd = &cobra.Command{
 		cfg.Token = loginRes.Token
 
 		_ = config.Save(cfg)
-		fmt.Println("Login success. Config saved to", config.GetPath())
+		fmt.Println("Login success. Config saved to", config.GetConfigPath())
 	},
 }
 

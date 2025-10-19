@@ -95,7 +95,7 @@ var registerCmd = &cobra.Command{
 		fmt.Println("Register result:", registerRes.Status)
 
 		_ = config.Save(cfg)
-		fmt.Println("Register success. Config saved to", config.GetPath(), "\nLogin challenge in progress...")
+		fmt.Println("Register success. Config saved to", config.GetConfigPath(), "\nLogin challenge in progress...")
 		loginCred := map[string]string{
 			"username": username,
 			"password": string(password),
@@ -122,7 +122,7 @@ var registerCmd = &cobra.Command{
 		}
 		cfg.Token = loginResVal.Token
 		_ = config.Save(cfg)
-		fmt.Println("Login success. Config saved to", config.GetPath())
+		fmt.Println("Login success. Config saved to", config.GetConfigPath())
 		os.Exit(0)
 	},
 }

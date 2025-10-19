@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -13,17 +14,56 @@ type Config struct {
 	Token    string `yaml:"token"`
 }
 
-func GetPath() string {
-	if xdgConfigHome := os.Getenv("XDG_CONFIG_HOME"); xdgConfigHome != "" {
-		return filepath.Join(xdgConfigHome, "acadule", "config.yaml")
+var (
+	configPath *string = nil
+)
+
+func init() {
+	resolvedConfigPath, err := resolveConfigPath()
+	if err != nil {
+		slog.Error("Failed to get config file path", slog.Any("error", err))
+		panic("Failed to resolve config path")
 	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "acadule.yaml")
+	configPath = resolvedConfigPath
+}
+
+// getConfigFolder returns config folder path.
+func getConfigFolder() (*string, error) {
+	// get user config dir
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// returns config dir for acadule
+	configDir := filepath.Join(userConfigDir, "acadule")
+	return &configDir, nil
+}
+
+// resolveConfigPath returns resolved config file path
+func resolveConfigPath() (*string, error) {
+	// get config dir
+	configDir, err := getConfigFolder()
+	if err != nil {
+		return nil, err
+	}
+
+	// returns config file
+	configFile := filepath.Join(*configDir, "config.yaml")
+	return &configFile, nil
+}
+
+// GetConfigPath returns config file path
+func GetConfigPath() string {
+	if configPath == nil {
+		panic("Config path not found.")
+	}
+	return *configPath
 }
 
 func Load() (Config, error) {
 	var cfg Config
-	data, err := os.ReadFile(GetPath())
+	data, err := os.ReadFile(GetConfigPath())
 	if err != nil {
 		return cfg, err
 	}
@@ -32,7 +72,7 @@ func Load() (Config, error) {
 }
 
 func Save(cfg Config) error {
-	_ = os.MkdirAll(filepath.Dir(GetPath()), 700)
+	_ = os.MkdirAll(filepath.Dir(GetConfigPath()), 0700)
 	out, _ := yaml.Marshal(cfg)
-	return os.WriteFile(GetPath(), out, 0600)
+	return os.WriteFile(GetConfigPath(), out, 0600)
 }
