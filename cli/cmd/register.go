@@ -1,17 +1,15 @@
 package cmd
 
 import (
+	"acadule-cli/internal/acaduleapi"
 	"acadule-cli/internal/config"
-	"bytes"
-	"encoding/json"
+	"acadule-cli/internal/simpleform"
 	"fmt"
-	"io"
+	"log/slog"
 	"net/http"
 	"os"
-	"syscall"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var (
@@ -37,90 +35,63 @@ var registerCmd = &cobra.Command{
 
 		validateAndUpdateConfig(&cfg)
 
-		// --- register input ---
-		fmt.Print("Password >")
-		password, err := term.ReadPassword(syscall.Stdin)
+		password := simpleform.AskPassword(true)
+		if password == nil {
+			fmt.Println("Password doesn't match.")
+			os.Exit(1)
+		}
+
+		// create request data
+		registerReq := acaduleapi.RegisterRequest{
+			Username: username,
+			Password: *password,
+			Mail:     mailAddr,
+		}
+
+		// do register request
+		res, statusCode, err := acaduleapi.Register(
+			apiURL,
+			registerReq,
+		)
 		if err != nil {
-			fmt.Println("\nError occurred on reading password:", err)
-			os.Exit(1)
-		}
-		fmt.Println("")
-		fmt.Print("Confirm password >")
-		confirmPassword, err := term.ReadPassword(syscall.Stdin)
-		if err != nil {
-			fmt.Println("\nError occurred on reading password:", err)
-			os.Exit(1)
-		} else if string(password) != string(confirmPassword) {
-			fmt.Println("\nPasswords do not match.")
+			slog.Error("Failed to request api", slog.Any("error", err))
 			os.Exit(1)
 		}
 
-		httpClient := &http.Client{}
-		registerCred := map[string]string{
-			"username": username,
-			"password": string(password),
-			"mail":     mailAddr,
-		}
-		registerReq, _ := json.Marshal(registerCred)
-
-		req, _ := http.NewRequest("POST", apiURL+"/auth/createUser", bytes.NewBuffer(registerReq))
-		req.Header.Set("Content-Type", "application/json") // Added this line
-		res, err := httpClient.Do(req)
-		if err != nil {
-			fmt.Println("Error occurred on register:", err)
-			os.Exit(1)
-		}
-		fmt.Println("\nRegistering...")
-		result, _ := io.ReadAll(res.Body)
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
-		}(res.Body)
-
-		var registerRes registerResponse
-		if err := json.Unmarshal(result, &registerRes); err != nil {
-		}
-
-		if res.StatusCode != http.StatusOK {
-			fmt.Println("Register failed. Status code:", res.StatusCode, "\nid:", registerRes.ID)
-			if res.StatusCode == http.StatusInternalServerError {
-				fmt.Println("Internal server error.")
-			} else if registerRes.Status == false {
+		// check failure and handle it
+		if fmt.Sprintf("%v", res.Status) != "true" {
+			fmt.Println("Register failed. Status code:", statusCode, "\nid:", res.ID)
+			// on Fail
+			if statusCode == http.StatusInternalServerError {
+				fmt.Println("Internal server error occurred.")
+			} else {
+				fmt.Println("Status:", res.Status)
 				fmt.Println("Username or mail address is already registered.")
 			}
-			fmt.Println("Please try again later.")
-
 			os.Exit(1)
 		}
 
-		fmt.Println("Register result:", registerRes.Status)
+		// on Success
+		fmt.Println("Register result:", res.Status)
 
 		_ = config.Save(cfg)
-		fmt.Println("Register success. Config saved to", config.GetConfigPath(), "\nLogin challenge in progress...")
-		loginCred := map[string]string{
-			"username": username,
-			"password": string(password),
+		fmt.Println("Register success. Config saved to", config.GetConfigPath())
+
+		// login challenge
+		fmt.Println("Login challenge in progress...")
+		loginReq := acaduleapi.LoginRequest{
+			Username: username,
+			Password: *password,
 		}
-		loginJsonData, _ := json.Marshal(loginCred)
-		loginReq, err := http.NewRequest("POST", apiURL+"/auth/login", bytes.NewBuffer(loginJsonData))
-		loginReq.Header.Set("Content-Type", "application/json")
-		loginRes, _ := httpClient.Do(loginReq)
+		loginRes, statusCode, err := acaduleapi.Login(apiURL, loginReq)
 
-		result, _ = io.ReadAll(loginRes.Body)
-		defer func(Body io.ReadCloser) {
-			_ = Body.Close()
-		}(res.Body)
-
-		if loginRes.StatusCode != http.StatusOK {
-			fmt.Println("Login failed. Status code:", loginRes.StatusCode)
-			fmt.Println("Response:", string(result))
+		if statusCode != http.StatusOK {
+			fmt.Println("Login failed. Status code:", statusCode)
+			fmt.Println("Response:", *loginRes)
 			os.Exit(1)
 		}
 
-		var loginResVal loginResponse
-		if err := json.Unmarshal(result, &loginResVal); err != nil {
-			fmt.Println("Failed to parse response:", err)
-		}
-		cfg.Token = loginResVal.Token
+		cfg.Token = loginRes.Token
 		_ = config.Save(cfg)
 		fmt.Println("Login success. Config saved to", config.GetConfigPath())
 		os.Exit(0)
