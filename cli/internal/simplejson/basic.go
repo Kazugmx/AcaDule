@@ -3,6 +3,7 @@ package simplejson
 import (
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 )
 
@@ -20,6 +21,7 @@ func UnmarshalResponse[T any](response *http.Response) (result T, err error) {
 	if err != nil {
 		return
 	}
+	slog.Debug("Unmarshal data", slog.String("raw", string(b)))
 	result, err = Unmarshal[T](b)
 	return
 }
