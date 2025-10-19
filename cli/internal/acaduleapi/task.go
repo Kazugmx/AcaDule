@@ -46,11 +46,7 @@ func GetAll(apiUrl, token string) (data *[]TaskResponse, err error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		result, err := simplejson.UnmarshalResponse[RequestFailError](res)
-		if err != nil {
-			return nil, err
-		}
-		return nil, &result
+		return nil, getErrorFromResponse(res)
 	}
 
 	result, err := simplejson.UnmarshalResponse[[]TaskResponse](res)
@@ -85,14 +81,7 @@ func Add(apiUrl, token string, request TaskAddRequest) (data *TaskAddResponse, e
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		if res.StatusCode == http.StatusUnauthorized {
-			return nil, fmt.Errorf("token is not valid")
-		}
-		errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
-		if err != nil {
-			return nil, err
-		}
-		return nil, &errorData
+		return nil, getErrorFromResponse(res)
 	}
 
 	response, err := simplejson.UnmarshalResponse[TaskAddResponse](res)
@@ -106,11 +95,7 @@ func View(apiUrl, token, id string) (data *TaskResponse, err error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
-		if err != nil {
-			return nil, err
-		}
-		return nil, &errorData
+		return nil, getErrorFromResponse(res)
 	}
 
 	response, err := simplejson.UnmarshalResponse[TaskResponse](res)
@@ -137,11 +122,7 @@ func Update(apiUrl, token string, request UpdateRequest) (response *TaskResponse
 		return
 	}
 	if res.StatusCode != http.StatusOK {
-		errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
-		if err != nil {
-			return nil, err
-		}
-		return nil, &errorData
+		return nil, getErrorFromResponse(res)
 	}
 	taskData, err := simplejson.UnmarshalResponse[TaskResponse](res)
 	return &taskData, err
@@ -161,14 +142,18 @@ func Delete(apiUrl, token string, request DeleteRequest) (err error) {
 		return
 	}
 	if res.StatusCode != http.StatusNotFound {
-		if res.StatusCode == http.StatusUnauthorized {
-			return fmt.Errorf("token is not valid")
-		}
-		errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
-		if err != nil {
-			return err
-		}
-		return &errorData
+		return getErrorFromResponse(res)
 	}
 	return
+}
+
+func getErrorFromResponse(res *http.Response) error {
+	if res.StatusCode == http.StatusUnauthorized {
+		return fmt.Errorf("token is not valid")
+	}
+	errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
+	if err != nil {
+		return err
+	}
+	return &errorData
 }
