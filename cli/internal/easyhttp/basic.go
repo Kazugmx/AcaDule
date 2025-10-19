@@ -1,7 +1,6 @@
 package easyhttp
 
 import (
-	"bytes"
 	"net"
 	"net/http"
 	"time"
@@ -27,8 +26,4 @@ func Do(request *http.Request) (*http.Response, error) {
 
 func Get(url string) (*http.Response, error) {
 	return httpClient.Get(url)
-}
-
-func PostJsonBytes(url string, body []byte) (*http.Response, error) {
-	return httpClient.Post(url, "application/json", bytes.NewBuffer(body))
 }
