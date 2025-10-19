@@ -20,7 +20,7 @@ import net.kazugmx.acadule.schemas.IDTaskReq
 import net.kazugmx.acadule.schemas.TaskService
 import net.kazugmx.acadule.schemas.UpdateTaskReq
 import org.jetbrains.exposed.sql.Database
-import java.util.*
+import java.util.UUID
 
 fun Application.configureTaskService(
     database: Database,

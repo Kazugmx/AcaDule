@@ -17,7 +17,7 @@ import io.ktor.server.routing.routing
 import net.kazugmx.acadule.schemas.AuthService
 import net.kazugmx.acadule.schemas.LoginReq
 import net.kazugmx.acadule.schemas.UserCreateReq
-import java.util.*
+import java.util.Date
 
 fun Application.configureAuth(authService: AuthService) {
     // Please read the jwt property from the config file if you are using EngineMain
