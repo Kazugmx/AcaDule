@@ -1,40 +1,42 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	taskCmd = &cobra.Command{
 		Use: "task",
+		Run: func(cmd *cobra.Command, args []string) {
+			err := cmd.Help()
+			if err != nil {
+				fmt.Println("Failed to show help:", err)
+				os.Exit(1)
+			}
+		},
 	}
 	listCmd = &cobra.Command{
 		Use: "list",
-		Run: func(cmd *cobra.Command, args []string) {
-
-		},
+		Run: doList,
 	}
 	addCmd = &cobra.Command{
 		Use: "add",
-		Run: func(cmd *cobra.Command, args []string) {
-
-		},
+		Run: doAdd,
 	}
 	viewCmd = &cobra.Command{
 		Use: "view",
-		Run: func(cmd *cobra.Command, args []string) {
-
-		},
+		Run: doView,
 	}
 	updateCmd = &cobra.Command{
 		Use: "update",
-		Run: func(cmd *cobra.Command, args []string) {
-
-		},
+		Run: doUpdate,
 	}
 	deleteCmd = &cobra.Command{
 		Use: "delete",
-		Run: func(cmd *cobra.Command, args []string) {
-
-		},
+		Run: doDelete,
 	}
 )
 
@@ -47,4 +49,24 @@ func init() {
 		updateCmd,
 		deleteCmd,
 	)
+}
+
+func doList(cmd *cobra.Command, args []string) {
+
+}
+
+func doAdd(cmd *cobra.Command, args []string) {
+
+}
+
+func doView(cmd *cobra.Command, args []string) {
+
+}
+
+func doUpdate(cmd *cobra.Command, args []string) {
+
+}
+
+func doDelete(cmd *cobra.Command, args []string) {
+
 }
