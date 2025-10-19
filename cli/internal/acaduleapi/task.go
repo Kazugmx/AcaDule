@@ -95,5 +95,23 @@ func Add(apiUrl, token string, request TaskAddRequest) (data *TaskAddResponse, e
 	}
 
 	response, err := simplejson.UnmarshalResponse[TaskAddResponse](res)
-	return &response, nil
+	return &response, err
+}
+
+func View(apiUrl, token, id string) (data *TaskResponse, err error) {
+	res, err := easyhttp.GetJsonWithBearer(apiUrl+"/task/"+id, token)
+	if err != nil {
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
+		if err != nil {
+			return nil, err
+		}
+		return nil, &errorData
+	}
+
+	response, err := simplejson.UnmarshalResponse[TaskResponse](res)
+	return &response, err
 }
