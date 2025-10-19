@@ -5,13 +5,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.dao.id.IntIdTable
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.exposedLogger
+import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.kotlin.datetime.CurrentDateTime
 import org.jetbrains.exposed.sql.kotlin.datetime.datetime
+import org.jetbrains.exposed.sql.or
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
-
+import org.jetbrains.exposed.sql.update
 
 @Serializable
 data class UserRes(
@@ -25,28 +31,29 @@ data class UserRes(
 data class UserCreateReq(
     val username: String,
     val mail: String,
-    val password: String
+    val password: String,
 )
 
 @Serializable
 data class UserCreateRes(
     val status: Boolean,
-    val id: Int
+    val id: Int,
 )
 
 @Serializable
 data class LoginReq(
     val username: String,
-    val password: String
+    val password: String,
 )
 
 @Serializable
 data class LoginRes(
-    val userID: Int
+    val userID: Int,
 )
 
-
-class AuthService(@Suppress("unused") database: Database) {
+class AuthService(
+    @Suppress("unused") database: Database,
+) {
     object UserTable : IntIdTable("users") {
         val mail = varchar("mail", length = 255).uniqueIndex()
         val username = varchar("username", 50).uniqueIndex()
@@ -55,78 +62,100 @@ class AuthService(@Suppress("unused") database: Database) {
         val lastLoginAt = datetime("last_login_at").nullable()
     }
 
-
     init {
         transaction {
             SchemaUtils.create(UserTable)
         }
     }
 
-    suspend fun createUser(user: UserCreateReq): UserCreateRes = dbQuery {
-        val isCredentialExists =
-            UserTable.select(UserTable.mail).where { (UserTable.mail eq user.mail) or (UserTable.username eq user.username) }.singleOrNull()
-        if (isCredentialExists != null) {
-            return@dbQuery UserCreateRes(false, -1)
-        }
-        val passHash = BCrypt.withDefaults().hashToString(12, user.password.toCharArray())
-        try {
-            val id: Int = UserTable.insert {
-                it[mail] = user.mail
-                it[username] = user.username
-                it[password] = passHash
-            }[UserTable.id].value
-            return@dbQuery UserCreateRes(true, id)
-        } catch (e: Exception) {
-            exposedLogger.error(e.message)
-            return@dbQuery UserCreateRes(false, -1)
-        }
-    }
-
-    suspend fun login(loginReq: LoginReq): LoginRes? = dbQuery {
-        val userData = UserTable
-            .select(UserTable.id, UserTable.password)
-            .limit(1)
-            .where { UserTable.username eq loginReq.username }
-            .singleOrNull() ?: return@dbQuery null
-        val check = BCrypt.verifyer().verify(
-            loginReq.password.toCharArray(),
-            userData[UserTable.password].toCharArray()
-        ).verified
-        if (check) {
-            UserTable.update({ UserTable.id eq userData[UserTable.id] }) {
-                it[lastLoginAt] = CurrentDateTime
+    suspend fun createUser(user: UserCreateReq): UserCreateRes =
+        dbQuery {
+            val isCredentialExists =
+                UserTable
+                    .select(
+                        UserTable.mail,
+                    ).where { (UserTable.mail eq user.mail) or (UserTable.username eq user.username) }
+                    .singleOrNull()
+            if (isCredentialExists != null) {
+                return@dbQuery UserCreateRes(false, -1)
             }
-            return@dbQuery LoginRes(userData[UserTable.id].value)
+            val passHash = BCrypt.withDefaults().hashToString(12, user.password.toCharArray())
+            try {
+                val id: Int =
+                    UserTable
+                        .insert {
+                            it[mail] = user.mail
+                            it[username] = user.username
+                            it[password] = passHash
+                        }[UserTable.id]
+                        .value
+                return@dbQuery UserCreateRes(true, id)
+            } catch (e: Exception) {
+                exposedLogger.error(e.message)
+                return@dbQuery UserCreateRes(false, -1)
+            }
         }
-        return@dbQuery null
-    }
 
-    suspend fun isUserExists(id: Int): Boolean = dbQuery {
-        UserTable.select(UserTable.id).where { UserTable.id eq id }.singleOrNull()?.let { true }
-            ?: false
-    }
-
-    suspend fun getUser(id: Int): UserRes? = dbQuery {
-        UserTable.select(UserTable.id).where { UserTable.id eq id }.map {
-            UserRes(
-                username = it[UserTable.username],
-                mail = it[UserTable.mail],
-                createdAt = it[UserTable.createdAt],
-                lastLoginAt = it[UserTable.lastLoginAt]
-            )
-        }.singleOrNull()
-    }
-
-    suspend fun getUsers(): List<UserRes> = dbQuery {
-        UserTable.selectAll().map {
-            UserRes(
-                username = it[UserTable.username],
-                mail = it[UserTable.mail],
-                createdAt = it[UserTable.createdAt],
-                lastLoginAt = it[UserTable.lastLoginAt]
-            )
+    suspend fun login(loginReq: LoginReq): LoginRes? =
+        dbQuery {
+            val userData =
+                UserTable
+                    .select(UserTable.id, UserTable.password)
+                    .limit(1)
+                    .where { UserTable.username eq loginReq.username }
+                    .singleOrNull() ?: return@dbQuery null
+            val check =
+                BCrypt
+                    .verifyer()
+                    .verify(
+                        loginReq.password.toCharArray(),
+                        userData[UserTable.password].toCharArray(),
+                    ).verified
+            if (check) {
+                UserTable.update({ UserTable.id eq userData[UserTable.id] }) {
+                    it[lastLoginAt] = CurrentDateTime
+                }
+                return@dbQuery LoginRes(userData[UserTable.id].value)
+            }
+            return@dbQuery null
         }
-    }
+
+    suspend fun isUserExists(id: Int): Boolean =
+        dbQuery {
+            UserTable
+                .select(UserTable.id)
+                .where { UserTable.id eq id }
+                .singleOrNull()
+                ?.let { true }
+                ?: false
+        }
+
+    suspend fun getUser(id: Int): UserRes? =
+        dbQuery {
+            UserTable
+                .select(UserTable.id)
+                .where { UserTable.id eq id }
+                .map {
+                    UserRes(
+                        username = it[UserTable.username],
+                        mail = it[UserTable.mail],
+                        createdAt = it[UserTable.createdAt],
+                        lastLoginAt = it[UserTable.lastLoginAt],
+                    )
+                }.singleOrNull()
+        }
+
+    suspend fun getUsers(): List<UserRes> =
+        dbQuery {
+            UserTable.selectAll().map {
+                UserRes(
+                    username = it[UserTable.username],
+                    mail = it[UserTable.mail],
+                    createdAt = it[UserTable.createdAt],
+                    lastLoginAt = it[UserTable.lastLoginAt],
+                )
+            }
+        }
 
     suspend fun deleteUser(id: Int) {
         dbQuery {
@@ -134,7 +163,5 @@ class AuthService(@Suppress("unused") database: Database) {
         }
     }
 
-    private suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
-
+    private suspend fun <T> dbQuery(block: suspend () -> T): T = newSuspendedTransaction(Dispatchers.IO) { block() }
 }
