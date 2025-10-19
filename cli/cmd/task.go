@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/huh"
 	"github.com/spf13/cobra"
 )
 
@@ -61,12 +62,7 @@ func init() {
 }
 
 func doList(cmd *cobra.Command, args []string) {
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Println("Error occurred on loading config:", err)
-		os.Exit(1)
-	}
-	validateAndUpdateConfig(&cfg)
+	cfg := loadConfig()
 
 	fmt.Println("Fetching status...")
 
@@ -83,12 +79,7 @@ func doList(cmd *cobra.Command, args []string) {
 }
 
 func doAdd(cmd *cobra.Command, args []string) {
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Println("Error occurred on loading config:", err)
-		os.Exit(1)
-	}
-	validateAndUpdateConfig(&cfg)
+	cfg := loadConfig()
 
 	fmt.Println("Fetching status...")
 	title := simpleform.Ask("What's your new task name?")
@@ -109,12 +100,7 @@ func doAdd(cmd *cobra.Command, args []string) {
 }
 
 func doView(cmd *cobra.Command, args []string) {
-	cfg, err := config.Load()
-	if err != nil {
-		fmt.Println("Error occurred on loading config:", err)
-		os.Exit(1)
-	}
-	validateAndUpdateConfig(&cfg)
+	cfg := loadConfig()
 
 	if len(args) == 0 {
 		fmt.Println("Set id as first argument.")
@@ -134,9 +120,70 @@ func doView(cmd *cobra.Command, args []string) {
 }
 
 func doUpdate(cmd *cobra.Command, args []string) {
+	cfg := loadConfig()
 
+	if len(args) == 0 {
+		fmt.Println("Set id as first argument.")
+		os.Exit(1)
+	}
+	id := args[0]
+
+	requestData := acaduleapi.UpdateRequest{
+		Id: id,
+	}
+	var selectedFieldIds []string
+	huh.NewMultiSelect[string]().
+		Title("Which fields want to edit?").
+		Value(&selectedFieldIds).
+		Options(
+			huh.NewOption("Title", "title"),
+			huh.NewOption("Description", "description"),
+			huh.NewOption("Progress", "progress"),
+			huh.NewOption("Deadline", "deadline"),
+			huh.NewOption("HasDone", "hasDone"),
+		).Run()
+
+	for _, fieldId := range selectedFieldIds {
+		switch fieldId {
+		case "title":
+			requestData.Title = simpleform.Ask("New title")
+		case "description":
+			requestData.Description = simpleform.Ask("New description")
+		case "progress":
+			huh.NewSelect[acaduleapi.TaskProgress]().
+				Title("New task progress").
+				Value(&requestData.Progress).
+				Options(
+					huh.NewOption("Not Started", acaduleapi.NOT_STARTED),
+					huh.NewOption("In Progress", acaduleapi.IN_PROGRESS),
+					huh.NewOption("Complete", acaduleapi.COMPLETE),
+					huh.NewOption("Suspended", acaduleapi.SUSPENDED),
+				).Run()
+		case "deadline":
+			fmt.Println("Sorry. Deadline can't update from terminal at this time.")
+		case "hasDone":
+			requestData.HasDone = simpleform.Confirm("Task has done?")
+		}
+	}
+	res, err := acaduleapi.Update(apiURL, cfg.Token, requestData)
+	if err != nil {
+		fmt.Println("Failed to request update api:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Updated! id:", res.Id)
 }
 
 func doDelete(cmd *cobra.Command, args []string) {
 
+}
+
+func loadConfig() config.Config {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Println("Error occurred on loading config:", err)
+		os.Exit(1)
+	}
+	validateAndUpdateConfig(&cfg)
+	return cfg
 }

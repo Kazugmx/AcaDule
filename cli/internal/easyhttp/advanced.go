@@ -38,3 +38,18 @@ func GetJsonWithBearer(url, token string) (res *http.Response, err error) {
 	res, err = Do(req)
 	return
 }
+
+func PatchJsonWithBearer(url, token string, body []byte) (res *http.Response, err error) {
+	req, err := http.NewRequest(http.MethodPatch, url, bytes.NewBuffer(body))
+	if err != nil {
+		return
+	}
+
+	// add headers
+	AcceptJson(req)
+	AuthBearer(req, token)
+
+	// request
+	res, err = Do(req)
+	return
+}
