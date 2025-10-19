@@ -3,6 +3,7 @@ package cmd
 import (
 	"acadule-cli/internal/acaduleapi"
 	"acadule-cli/internal/config"
+	"acadule-cli/internal/simpleform"
 	"fmt"
 	"os"
 
@@ -82,7 +83,29 @@ func doList(cmd *cobra.Command, args []string) {
 }
 
 func doAdd(cmd *cobra.Command, args []string) {
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Println("Error occurred on loading config:", err)
+		os.Exit(1)
+	}
+	validateAndUpdateConfig(&cfg)
 
+	fmt.Println("Fetching status...")
+	title := simpleform.Ask("What's your new task name?")
+	requestData := acaduleapi.TaskAddRequest{
+		Title: title,
+	}
+
+	res, err := acaduleapi.Add(apiURL, cfg.Token, requestData)
+	if err != nil {
+		fmt.Println("Failed to request api:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Task created!")
+	fmt.Println("- Title:", title)
+	fmt.Println("- Id:", res.Id)
+	fmt.Println("- Status:", res.Status)
 }
 
 func doView(cmd *cobra.Command, args []string) {
