@@ -100,9 +100,11 @@ class TaskService(
             TasksTable
                 .select(
                     TasksTable.id,
+                    TasksTable.title,
                     TasksTable.description,
                     TasksTable.progress,
                     TasksTable.deadline,
+                    TasksTable.lastUpdated,
                     TasksTable.hasDone,
                 ).where { TasksTable.ownerID eq userID }
                 .map {
