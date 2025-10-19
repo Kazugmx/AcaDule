@@ -53,3 +53,18 @@ func PatchJsonWithBearer(url, token string, body []byte) (res *http.Response, er
 	res, err = Do(req)
 	return
 }
+
+func DeleteJsonWithBearer(url, token string, body []byte) (res *http.Response, err error) {
+	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(body))
+	if err != nil {
+		return
+	}
+
+	// add headers
+	AcceptJson(req)
+	AuthBearer(req, token)
+
+	// request
+	res, err = Do(req)
+	return
+}

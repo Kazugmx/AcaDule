@@ -15,7 +15,7 @@ import org.jetbrains.exposed.sql.kotlin.datetime.datetime
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
-import java.util.UUID
+import java.util.*
 
 @Serializable
 @Suppress("unused")
@@ -57,6 +57,7 @@ data class UpdateTaskReq(
     val lastUpdated: LocalDateTime? = null,
 )
 
+@Serializable
 data class IDTaskReq(
     val id: String,
 )

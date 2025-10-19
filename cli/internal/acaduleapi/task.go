@@ -146,3 +146,29 @@ func Update(apiUrl, token string, request UpdateRequest) (response *TaskResponse
 	taskData, err := simplejson.UnmarshalResponse[TaskResponse](res)
 	return &taskData, err
 }
+
+type DeleteRequest struct {
+	Id string `json:"id,omitempty"`
+}
+
+func Delete(apiUrl, token string, request DeleteRequest) (err error) {
+	deleteData, err := json.Marshal(request)
+	if err != nil {
+		return
+	}
+	res, err := easyhttp.DeleteJsonWithBearer(apiUrl+"/task", token, deleteData)
+	if err != nil {
+		return
+	}
+	if res.StatusCode != http.StatusNotFound {
+		if res.StatusCode == http.StatusUnauthorized {
+			return fmt.Errorf("token is not valid")
+		}
+		errorData, err := simplejson.UnmarshalResponse[RequestFailError](res)
+		if err != nil {
+			return err
+		}
+		return &errorData
+	}
+	return
+}

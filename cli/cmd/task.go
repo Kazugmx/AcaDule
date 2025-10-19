@@ -175,7 +175,30 @@ func doUpdate(cmd *cobra.Command, args []string) {
 }
 
 func doDelete(cmd *cobra.Command, args []string) {
+	cfg := loadConfig()
 
+	if len(args) == 0 {
+		fmt.Println("Set id as first argument.")
+		os.Exit(1)
+	}
+	id := args[0]
+
+	requestData := acaduleapi.DeleteRequest{
+		Id: id,
+	}
+
+	if !simpleform.Confirm("Are you really remove the task?") {
+		fmt.Println("See you!")
+		os.Exit(0)
+	}
+
+	err := acaduleapi.Delete(apiURL, cfg.Token, requestData)
+	if err != nil {
+		fmt.Println("Failed to delete task:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Successfully to delete task. id:", id)
 }
 
 func loadConfig() config.Config {
