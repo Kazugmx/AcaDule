@@ -16,11 +16,6 @@ var (
 	mailAddr string
 )
 
-type registerResponse struct {
-	Status bool `json:"status"`
-	ID     int  `json:"id"`
-}
-
 // registerCmd represents the register command
 var registerCmd = &cobra.Command{
 	Use:   "register",
