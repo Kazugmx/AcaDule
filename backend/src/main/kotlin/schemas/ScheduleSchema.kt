@@ -1,3 +1,3 @@
 package net.kazugmx.acadule.schemas
 
-//TODO Create schema for schedule data
+// TODO Create schema for schedule data
