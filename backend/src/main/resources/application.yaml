@@ -3,7 +3,7 @@ ktor:
     modules:
       - net.kazugmx.acadule.ApplicationKt.module
   deployment:
-    port: 8080
+    port: 8333
 db:
   url: ${JDBC_URL:-jdbc:sqlite:data.db}
   user: ${JDBC_USER:-}

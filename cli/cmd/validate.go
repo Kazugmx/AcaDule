@@ -10,7 +10,6 @@ import (
 )
 
 func validateAndUpdateConfig(cfg *config.Config) {
-
 	//  --- config input validation ---
 	if apiURL == "dev" {
 		apiURL = "http://localhost:8080"
@@ -18,6 +17,9 @@ func validateAndUpdateConfig(cfg *config.Config) {
 	} else if apiURL != "" {
 		cfg.ApiURL = apiURL
 		fmt.Println("API URL is set to user input: ", apiURL)
+	} else if cfg.ApiURL != "" {
+		apiURL = cfg.ApiURL
+		fmt.Println("API URL is set from config: ", apiURL)
 	}
 
 	if cfg.Username != "" && username == "" {
@@ -32,7 +34,7 @@ func validateAndUpdateConfig(cfg *config.Config) {
 	}
 
 	// --- config update selection ----
-	if cfg.ApiURL != apiURL && cfg.ApiURL != "" {
+	if cfg.ApiURL != apiURL && cfg.ApiURL != "" && apiURL != "" {
 		fmt.Println("WARN: Existing API URL is different from user input.\nconfig :", cfg.ApiURL, "\nuser input:", apiURL)
 		if simpleform.Confirm("Do you want to update config?") {
 			cfg.ApiURL = apiURL

@@ -31,6 +31,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1"){
         because("Exposed 0.56.x is not yet compatible with kotlinx-datetime 0.7.x")
     }
+    implementation("com.squareup.okio:okio:3.9.1")
     implementation("org.jetbrains.exposed:exposed-core:$exposed_version")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposed_version")
     implementation ("org.jetbrains.exposed:exposed-dao:$exposed_version")
