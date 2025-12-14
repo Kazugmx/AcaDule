@@ -64,36 +64,38 @@ CLI・Webいずれからも操作可能なタスクAPIを提供する。
 
 ## 🛠️ Tech Stack Overview
 
-| Layer | Technology | Description |
-|-------|-------------|--------------|
-| Backend | Kotlin / Ktor / Exposed | REST API |
-| Database | PostgreSQL | Persistent storage |
-| Auth | JWT + BCrypt | Secure login |
-| CLI | Go | Terminal task client |
-| Web | Next.js (PWA) | Web interface |
-| Infra | Docker / k8s-ready | Deployable stack |
+| Layer    | Technology              | Description          |
+|----------|-------------------------|----------------------|
+| Backend  | Kotlin / Ktor / Exposed | REST API             |
+| Database | PostgreSQL              | Persistent storage   |
+| Auth     | JWT + BCrypt            | Secure login         |
+| CLI      | Go                      | Terminal task client |
+| Web      | Next.js (PWA)           | Web interface        |
+| Infra    | Docker / k8s-ready      | Deployable stack     |
 
 ---
 
 ## 🗓️ Planned Milestones
 
-| Version | Target | Description |
-|----------|---------|-------------|
-| `v0.1.0` | MVP完成 | CLI + Task API 基本動作確認 |
-| `v0.2.0` | PWAプロトタイプ | Webクライアントとの統合 |
-| `v0.3.0` | Timetable統合 | 学習スケジュール機能実装 |
-| `v1.0.0` | 公開版 | 全機能安定化・デプロイ |
+| Version  | Target      | Description            |
+|----------|-------------|:-----------------------|
+| `v0.1.0` | MVP完成       | CLI + Task API 基本動作確認  |
+| `v0.2.0` | PWAプロトタイプ   | Webクライアントとの統合          |
+| `v0.3.0` | Timetable統合 | 学習スケジュール機能実装           |
+| `v1.0.0` | 公開版         | 全機能安定化・デプロイ            |
 
 ---
 
 ## 📦 OSS Components Used
 
-| Library | Repository | License | Purpose |
-|----------|-------------|----------|----------|
-| **Ktor** | [ktorio/ktor](https://github.com/ktorio/ktor) | Apache License 2.0 | Kotlin Web Framework |
-| **Exposed** | [JetBrains/Exposed](https://github.com/JetBrains/Exposed) | Apache License 2.0 | Kotlin ORM / SQL DSL |
-| **BCrypt** | [patrickfav/bcrypt](https://github.com/patrickfav/bcrypt) | Apache License 2.0 | Password Hashing |
-| **HikariCP** | [brettwooldridge/HikariCP](https://github.com/brettwooldridge/HikariCP) | Apache License 2.0 | Database Connection Pool |
+| Library          | Repository                                                              | License            | Purpose                      |
+|------------------|-------------------------------------------------------------------------|--------------------|------------------------------|
+| **Ktor**         | [ktorio/ktor](https://github.com/ktorio/ktor)                           | Apache License 2.0 | Kotlin Web Framework         |
+| **Exposed**      | [JetBrains/Exposed](https://github.com/JetBrains/Exposed)               | Apache License 2.0 | Kotlin ORM / SQL DSL         |
+| **BCrypt**       | [patrickfav/bcrypt](https://github.com/patrickfav/bcrypt)               | Apache License 2.0 | Password Hashing             |
+| **HikariCP**     | [brettwooldridge/HikariCP](https://github.com/brettwooldridge/HikariCP) | Apache License 2.0 | Database Connection Pool     |
+| **Next.js**      | [vercel/next.js](https://github.com/vercel/next.js)                     | MIT                | React Framework              |
+| **TailwindCSS**  | [tailwindlabs/tailwindcss](https://github.com/tailwindlabs/tailwindcss) | MIT                | Utility-first CSS            |
 
 ---
 
